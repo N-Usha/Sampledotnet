@@ -2,6 +2,12 @@ name: ASP.NET MVC App deploy to Azure App service
 
 on: [push,pull_request]
 
+env:
+  WEB_APP_NAME: dotnetappGH                 # Replace with your app name
+  SOLUTION_FILE_NAME: SampleWebApplication  # Replace with your Solution name
+  PROJECT_FILE_NAME: SampleWebApplication   # Replace with your Project name
+  BUILD_CONFIG: Debug
+
 jobs:
   build-and-deploy:
     runs-on: windows-latest
@@ -21,15 +27,18 @@ jobs:
     #- name: msBuild with dotnet
     #  run: C:\"Program Files (x86)"\"Microsoft Visual Studio"\2019\Enterprise\MSBuild\Current\Bin\msbuild.exe .\SampleWebApplication.sln -t:rebuild /p:DeployOnBuild=true /p:DeployDefaultTarget=WebPublish /p:WebPublishMethod=FileSystem /p:DeleteExistingFiles=True /p:publishUrl=".\\WebAppContent"
   
+    # Finds and adds MSBuild to the path
     - name: Setup MSBuild.exe
       uses: warrenbuckley/Setup-MSBuild@v1
 
+    # Run a build of the solution file with the specified configuration (Debug in this example)
     - name: MSBuild
-      run: msbuild .\SampleWebApplication.sln
+      run: msbuild .\${{env.SOLUTION_FILE_NAME}}.sln /p:Configuration=${{env.BUILD_CONFIG}} /p:DeployOnBuild=true /p:WebPublishMethod=FileSystem  /p:OutDir="\temp"
        
+    # Deploying the package from the MSBuild output directory specified in the previous step (p:OutDir)
     - name: 'Run Azure webapp deploy action using publish profile credentials'
       uses: azure/webapps-deploy@v1
       with: 
-        app-name: dotnetappGH # Replace with your app name
+        app-name: ${{env.WEB_APP_NAME}}  # Replace with your app name
         publish-profile: ${{ secrets.azureWebAppPublishProfile }} # Define secret variable in repository settings as per action documentation
-        package: 'SampleWebApplication/'
+        package: '\temp\_PublishedWebsites\${{env.PROJECT_FILE_NAME}}'
